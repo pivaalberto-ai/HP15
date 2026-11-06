@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- corpo -->
+    <path android:fillColor="#333840" android:pathData="M28,34h52a4,4 0 0 1 4,4v32a4,4 0 0 1 -4,4h-52a4,4 0 0 1 -4,-4v-32a4,4 0 0 1 4,-4z"/>
+    <!-- display -->
+    <path android:fillColor="#B9C2A6" android:pathData="M38,38h32a2,2 0 0 1 2,2v6a2,2 0 0 1 -2,2h-32a2,2 0 0 1 -2,-2v-6a2,2 0 0 1 2,-2z"/>
+    <!-- tasti -->
+    <path android:fillColor="#F2F2F0" android:pathData="M30,52h6v5h-6z M40,52h6v5h-6z M50,52h6v5h-6z M60,52h6v5h-6z M70,52h8v5h-8z M30,61h6v5h-6z M40,61h6v5h-6z M60,61h6v5h-6z M70,61h8v5h-8z"/>
+    <path android:fillColor="#FF9F43" android:pathData="M30,66.5h6v4h-6z"/>
+    <path android:fillColor="#5EE09A" android:pathData="M40,66.5h6v4h-6z"/>
+    <path android:fillColor="#F2F2F0" android:pathData="M50,61h6v9.5h-6z"/>
+</vector>
