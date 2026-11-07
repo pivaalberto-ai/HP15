@@ -19,31 +19,22 @@ funzioni scientifiche e statistiche. Codice Java puro, nessuna libreria esterna.
 
 ## Uso
 
-La calcolatrice si apre in orizzontale. Ogni tasto ha tre funzioni:
-la **primaria** (sul tasto), la funzione **f** (arancione, sopra il tasto)
-e la funzione **g** (verde, sul tasto in basso). Premi f o g e poi il tasto.
+Il manuale completo in italiano è in [`docs/RPN-15_Manuale.pdf`](docs/RPN-15_Manuale.pdf).
 
-| Cosa | Funzioni |
-|---|---|
-| Stack | ENTER, R↓, R↑, x↔y, CLx, ←, LSTx |
-| Aritmetica | + − × ÷, yˣ, √x, x², 1/x, %, Δ%, CHS, EEX |
-| Esponenziali | eˣ, LN, 10ˣ, LOG |
-| Trigonometria | SIN COS TAN e inverse, HYP / HYP⁻¹, DEG/RAD/GRD, π |
-| Conversioni | →P, →R, →H.MS, →H, →RAD, →DEG |
-| Numeri | ABS, INT, FRAC, RND, x! (anche non interi), Py,x, Cy,x, RAN# |
-| Registri | STO/RCL 0–9 e .0–.9, aritmetica nei registri (STO + 3, RCL × 5…) |
-| Statistica | Σ+, Σ−, x̄, s, L.R., ŷ,r, CLΣ, RCL Σ+ (registri R2–R7 come sull'originale) |
-| Display | FIX/SCI/ENG n, separatori delle migliaia, PREFIX mostra le 10 cifre |
+Funzioni disponibili: stack XYZT con LSTx, funzioni scientifiche e iperboliche, conversioni,
+statistica e regressione, 64 registri con indirizzamento indiretto (I e (i)), programmazione
+(448 righe, etichette, sottoprogrammi, test, ISG/DSE, flag, USER, SST/BST, PSE),
+SOLVE, integrazione numerica, numeri complessi e matrici A–E (sistemi lineari, inversa,
+determinante, norme, trasposta).
 
-- Il tasto **ON** apre un menu: separatore decimale punto/virgola, azzeramento, informazioni.
+- Il tasto **ON** apre un menu: separatore decimale, azzeramento, informazioni.
 - **Tieni premuto il display** per copiare X negli appunti.
-- Stack, registri e impostazioni vengono salvati alla chiusura.
-
-Le funzioni sbiadite (programmazione, SOLVE, ∫, matrici, numeri complessi) non sono
-ancora implementate e mostrano un avviso.
+- Qualunque tasto ferma un programma in esecuzione.
+- Tutto lo stato (programmi compresi) viene salvato alla chiusura.
 
 ## Struttura
 
 - `app/src/main/java/it/rpn15/Calc.java` – motore di calcolo (indipendente da Android)
 - `app/src/main/java/it/rpn15/MainActivity.java` – interfaccia
+- `docs/` – manuale PDF e relativo sorgente HTML
 - `.github/workflows/build.yml` – compilazione automatica dell'APK su GitHub

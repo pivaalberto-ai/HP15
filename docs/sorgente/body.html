@@ -1,0 +1,446 @@
+<section class="cover">
+  <div class="lcdbig">-1.4142&nbsp;</div>
+  <h1>RPN-15</h1>
+  <div class="sub">Calcolatrice scientifica programmabile RPN per Android<br>ispirata alla HP-15C — Manuale d'uso</div>
+  <div class="toc">
+    <div>1. Primi passi</div>
+    <div>2. La tastiera e il display</div>
+    <div>3. La logica RPN e lo stack</div>
+    <div>4. Inserire e mostrare i numeri</div>
+    <div>5. Funzioni matematiche</div>
+    <div>6. Statistica</div>
+    <div>7. Registri e indirizzamento indiretto</div>
+    <div>8. Programmazione</div>
+    <div>9. SOLVE: trovare gli zeri</div>
+    <div>10. ∫ Integrazione numerica</div>
+    <div>11. Numeri complessi</div>
+    <div>12. Matrici</div>
+    <div>13. Messaggi di errore</div>
+    <div>14. Limiti e differenze dall'originale</div>
+    <div>Appendice: indice delle funzioni</div>
+  </div>
+</section>
+
+<section class="chapter">
+<h2>1. Primi passi</h2>
+<h3>Installazione</h3>
+<ol>
+  <li>Copia <b>RPN-15.apk</b> sul telefono, oppure scaricalo dalla pagina <i>Releases</i> del repository GitHub.</li>
+  <li>Aprilo. Android chiede di consentire l'installazione da quell'origine (il browser o il file manager): accetta, poi tocca <i>Installa</i>.</li>
+  <li>L'icona <b>RPN-15</b> compare tra le app. Serve Android 8.0 o superiore.</li>
+</ol>
+<p>La calcolatrice si apre sempre in orizzontale, a schermo intero. Stack, registri, programmi, matrici e impostazioni vengono salvati automaticamente quando esci dall'app e ritrovati alla riapertura.</p>
+
+<h3>Il primo calcolo</h3>
+<p>RPN-15 usa la notazione polacca inversa (RPN): prima si inseriscono i numeri, poi si sceglie l'operazione. Non esiste il tasto <b>=</b>.</p>
+<table class="steps">
+  <tr><th>Tasti</th><th>Display</th><th>Significato</th></tr>
+  <tr><td>3 [[ENTER]] 4 [[+]]</td><td>{{lcd:7.0000}}</td><td>3 + 4</td></tr>
+  <tr><td>5 [[×]]</td><td>{{lcd:35.0000}}</td><td>(3 + 4) × 5: il risultato precedente resta nello stack</td></tr>
+  <tr><td>2 [[yˣ]]</td><td>{{lcd:1,225.0000}}</td><td>35²</td></tr>
+</table>
+
+<h3>Il menu</h3>
+<p>Il tasto [[ON]] apre un menu con tre voci: scambio del separatore decimale (punto o virgola), azzeramento completo della calcolatrice e informazioni. Tieni premuto il display per copiare il valore di X negli appunti, con tutte le cifre.</p>
+</section>
+
+<section class="chapter">
+<h2>2. La tastiera e il display</h2>
+<p>Ogni tasto ha fino a tre funzioni:</p>
+<ul>
+  <li><b>primaria</b>, in bianco sul tasto: si ottiene premendo il tasto;</li>
+  <li><b>funzione f</b>, in arancione sopra il tasto: premi [[f]] e poi il tasto;</li>
+  <li><b>funzione g</b>, in verde sulla parte bassa del tasto: premi [[g]] e poi il tasto.</li>
+</ul>
+<p>Premendo di nuovo [[f]] o [[g]] il prefisso si annulla. Il piccolo numero grigio nell'angolo di ogni tasto dello schema qui sotto è il suo <b>codice</b> (riga e colonna), usato nel display del modo programma.</p>
+{{KEYBOARD}}
+
+<h3>Annunciatori</h3>
+<p>Sotto le cifre il display mostra alcune indicazioni di stato:</p>
+<table>
+  <tr><th>Indicatore</th><th>Significato</th></tr>
+  <tr><td><b>USER</b></td><td>Modo USER attivo: i tasti A–E funzionano senza [[f]] (vedi capitolo 8).</td></tr>
+  <tr><td><b>f</b>, <b>g</b></td><td>È stato premuto un tasto prefisso.</td></tr>
+  <tr><td><b>STO</b>, <b>GTO</b>, <b>FIX</b>…</td><td>Un'operazione attende ancora un argomento (un registro, un'etichetta, un numero di cifre).</td></tr>
+  <tr><td><b>RAD</b>, <b>GRAD</b></td><td>Unità angolare corrente (nessuna indicazione = gradi sessagesimali).</td></tr>
+  <tr><td><b>C</b></td><td>Modo complesso attivo (flag 8).</td></tr>
+  <tr><td><b>PRGM</b></td><td>Modo programma: i tasti vengono memorizzati, non eseguiti.</td></tr>
+</table>
+<p>Durante l'esecuzione di un programma, di SOLVE o di ∫ il display lampeggia <span class="lcd">running</span>. <b>Qualunque tasto</b> interrompe l'esecuzione.</p>
+</section>
+
+<section class="chapter">
+<h2>3. La logica RPN e lo stack</h2>
+<p>I numeri vengono conservati in una pila di quattro registri, chiamati <b>X, Y, Z</b> e <b>T</b>. Il display mostra sempre X.</p>
+<ul>
+  <li>[[ENTER]] copia X in Y; il contenuto precedente sale di un livello (Y→Z, Z→T, il vecchio T si perde).</li>
+  <li>Le operazioni con due operandi (+ − × ÷ yˣ…) usano Y e X, mettono il risultato in X e fanno scendere lo stack: Z va in Y, T in Z e T resta invariato. Così T funziona da costante.</li>
+  <li>Le funzioni di una variabile (√x, SIN, LN…) sostituiscono X con il risultato.</li>
+</ul>
+<table>
+  <tr><th>Tasto</th><th>Effetto</th></tr>
+  <tr><td>[[x↔y]]</td><td>Scambia X e Y.</td></tr>
+  <tr><td>[[R↓]] / [[g]] [[R↑]]</td><td>Ruotano lo stack verso il basso / verso l'alto.</td></tr>
+  <tr><td>[[g]] [[LSTx]]</td><td>Richiama l'ultimo valore di X usato da una funzione (utile per correggere errori).</td></tr>
+  <tr><td>[[g]] [[CLx]]</td><td>Azzera X.</td></tr>
+  <tr><td>[[←]]</td><td>Cancella l'ultima cifra durante l'inserimento; altrimenti azzera X.</td></tr>
+</table>
+<h3>Sollevamento automatico dello stack</h3>
+<p>Dopo quasi tutte le operazioni, il numero successivo che digiti spinge il risultato in Y (lo stack "sale"). Fanno eccezione [[ENTER]], [[CLx]], [[Σ+]] e [[Σ−]]: dopo di loro il nuovo numero <b>sovrascrive</b> X. Per questo 5 [[ENTER]] 3 mette 5 in Y e 3 in X, e 5 [[ENTER]] [[×]] calcola 5 × 5.</p>
+<div class="tip">Calcoli a catena: (2 + 3) × (4 + 5) = 2 [[ENTER]] 3 [[+]] 4 [[ENTER]] 5 [[+]] [[×]] → {{lcd:45.0000}}. I risultati intermedi restano nello stack, senza parentesi.</div>
+</section>
+
+<section class="chapter">
+<h2>4. Inserire e mostrare i numeri</h2>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[0]]…[[9]] [[.]]</td><td>Cifre e punto decimale (fino a 10 cifre).</td></tr>
+  <tr><td>[[CHS]]</td><td>Cambia segno; durante l'inserimento dell'esponente cambia il segno dell'esponente.</td></tr>
+  <tr><td>[[EEX]]</td><td>Inserisce l'esponente di 10. Esempio: 6.022 [[EEX]] 23 → {{lcd:6.022  23}}.</td></tr>
+  <tr><td>[[f]] [[FIX]] <i>n</i></td><td>Formato fisso con <i>n</i> decimali (0–9).</td></tr>
+  <tr><td>[[f]] [[SCI]] <i>n</i></td><td>Notazione scientifica con <i>n</i> cifre dopo la virgola (fino a 6).</td></tr>
+  <tr><td>[[f]] [[ENG]] <i>n</i></td><td>Notazione ingegneristica: esponente multiplo di 3.</td></tr>
+  <tr><td>[[f]] [[FIX]] [[I]]</td><td>Come sopra, con il numero di cifre preso dal registro I (vale anche per SCI ed ENG).</td></tr>
+  <tr><td>[[f]] [[PREFIX]]</td><td>Mostra per un attimo tutte le 10 cifre di X, senza virgola.</td></tr>
+  <tr><td>[[g]] [[RND]]</td><td>Arrotonda X esattamente come appare sul display.</td></tr>
+</table>
+<p>Il formato iniziale è FIX 4. Se un numero non sta nel formato fisso, viene mostrato in notazione scientifica. I calcoli interni usano sempre la precisione completa (circa 15–16 cifre). Il valore massimo è ±9.999999999 × 10<sup>99</sup>: oltre questo limite il risultato viene bloccato al massimo e si accende il flag 9 (overflow).</p>
+<p>Il separatore decimale (punto o virgola) si sceglie dal menu [[ON]]; il separatore delle migliaia si adegua.</p>
+</section>
+
+<section class="chapter">
+<h2>5. Funzioni matematiche</h2>
+<h3>Funzioni generali</h3>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[√x]]</td><td>radice quadrata</td><td>[[g]] [[x²]]</td><td>quadrato</td></tr>
+  <tr><td>[[eˣ]]</td><td>esponenziale</td><td>[[g]] [[LN]]</td><td>logaritmo naturale</td></tr>
+  <tr><td>[[10ˣ]]</td><td>potenza di 10</td><td>[[g]] [[LOG]]</td><td>logaritmo decimale</td></tr>
+  <tr><td>[[yˣ]]</td><td>Y elevato a X</td><td>[[1/x]]</td><td>reciproco</td></tr>
+  <tr><td>[[g]] [[%]]</td><td>X% di Y (Y resta)</td><td>[[g]] [[Δ%]]</td><td>variazione % da Y a X</td></tr>
+  <tr><td>[[g]] [[ABS]]</td><td>valore assoluto</td><td>[[f]] [[x!]]</td><td>fattoriale; per non interi Γ(x+1)</td></tr>
+  <tr><td>[[g]] [[INT]]</td><td>parte intera</td><td>[[f]] [[FRAC]]</td><td>parte frazionaria</td></tr>
+  <tr><td>[[f]] [[Py,x]]</td><td>disposizioni di Y elementi a X a X</td><td>[[g]] [[Cy,x]]</td><td>combinazioni di Y elementi a X a X</td></tr>
+  <tr><td>[[g]] [[π]]</td><td>π</td><td>[[f]] [[RAN#]]</td><td>numero casuale tra 0 e 1</td></tr>
+</table>
+<p>[[STO]] [[RAN#]] usa X come seme dei numeri casuali (per ottenere sequenze ripetibili); [[RCL]] [[RAN#]] richiama l'ultimo numero generato.</p>
+
+<h3>Trigonometria</h3>
+<p>[[g]] [[DEG]], [[g]] [[RAD]] e [[g]] [[GRD]] scelgono l'unità angolare: gradi, radianti e gradi centesimali. In gradi gli angoli notevoli danno risultati esatti (sin 180° = 0, cos 90° = 0).</p>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[SIN]] [[COS]] [[TAN]]</td><td>seno, coseno, tangente</td></tr>
+  <tr><td>[[g]] [[SIN⁻¹]] [[g]] [[COS⁻¹]] [[g]] [[TAN⁻¹]]</td><td>funzioni inverse</td></tr>
+  <tr><td>[[f]] [[HYP]] [[SIN]] (COS, TAN)</td><td>seno, coseno, tangente iperbolici</td></tr>
+  <tr><td>[[g]] [[HYP⁻¹]] [[SIN]] (COS, TAN)</td><td>iperboliche inverse</td></tr>
+</table>
+
+<h3>Conversioni</h3>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[g]] [[→P]]</td><td>Da rettangolari a polari: con x in X e y in Y dà il modulo r in X e l'angolo θ in Y.</td></tr>
+  <tr><td>[[f]] [[→R]]</td><td>Da polari a rettangolari: r in X, θ in Y → x in X, y in Y.</td></tr>
+  <tr><td>[[f]] [[→H.MS]]</td><td>Ore (o gradi) decimali → formato ore.minutisecondi (12.5083 → 12.3030 = 12h 30′ 30″).</td></tr>
+  <tr><td>[[g]] [[→H]]</td><td>Da ore.minutisecondi a ore decimali.</td></tr>
+  <tr><td>[[f]] [[→RAD]] / [[g]] [[→DEG]]</td><td>Da gradi a radianti / da radianti a gradi.</td></tr>
+</table>
+<div class="tip">Esempio: modulo e angolo del vettore (3, 4). 4 [[ENTER]] 3 [[g]] [[→P]] → {{lcd:5.0000}}; [[x↔y]] → {{lcd:53.1301}} gradi.</div>
+</section>
+
+<section>
+<h2>6. Statistica</h2>
+<p>Per ogni dato premi [[Σ+]]. Per coppie di dati inserisci prima <i>y</i>, poi [[ENTER]], poi <i>x</i>, e premi [[Σ+]]. Il display mostra il numero di dati raccolti. [[g]] [[Σ−]] toglie un dato inserito per errore (reinserisci gli stessi valori).</p>
+<p>Le somme sono tenute in registri normali, che puoi richiamare con [[RCL]]:</p>
+<table>
+  <tr><th>Registro</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>R7</th></tr>
+  <tr><td>Contenuto</td><td>n</td><td>Σx</td><td>Σx²</td><td>Σy</td><td>Σy²</td><td>Σxy</td></tr>
+</table>
+<table>
+  <tr><th>Tasti</th><th>Risultato</th></tr>
+  <tr><td>[[g]] [[x̄]]</td><td>Media di x in X, media di y in Y.</td></tr>
+  <tr><td>[[g]] [[s]]</td><td>Deviazione standard campionaria di x in X, di y in Y.</td></tr>
+  <tr><td>[[f]] [[L.R.]]</td><td>Retta di regressione y = m·x + b: intercetta b in X, pendenza m in Y.</td></tr>
+  <tr><td><i>x</i> [[f]] [[ŷ,r]]</td><td>Valore stimato ŷ per la <i>x</i> data in X, coefficiente di correlazione r in Y.</td></tr>
+  <tr><td>[[RCL]] [[Σ+]]</td><td>Σx in X e Σy in Y.</td></tr>
+  <tr><td>[[f]] [[CLΣ]]</td><td>Azzera i registri statistici R2–R7 e lo stack.</td></tr>
+</table>
+<div class="tip">Esempio con i punti (1; 3), (2; 5), (3; 7):<br>
+[[f]] [[CLΣ]] 3 [[ENTER]] 1 [[Σ+]] 5 [[ENTER]] 2 [[Σ+]] 7 [[ENTER]] 3 [[Σ+]]<br>
+[[f]] [[L.R.]] → {{lcd:1.0000}} (intercetta), [[x↔y]] → {{lcd:2.0000}} (pendenza)<br>
+4 [[f]] [[ŷ,r]] → {{lcd:9.0000}}, [[x↔y]] → {{lcd:1.0000}} (correlazione perfetta).</div>
+</section>
+
+<section class="chapter">
+<h2>7. Registri e indirizzamento indiretto</h2>
+<p>Ci sono 20 registri a indirizzo diretto, <b>R0–R9</b> e <b>R.0–R.9</b> (con il punto), più il registro speciale <b>I</b>. Tramite (i) si raggiungono fino a 64 registri.</p>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[STO]] <i>n</i> / [[RCL]] <i>n</i></td><td>Memorizza / richiama X nel registro <i>n</i> (0–9).</td></tr>
+  <tr><td>[[STO]] [[.]] <i>n</i></td><td>Registri R.0–R.9.</td></tr>
+  <tr><td>[[STO]] [[+]] <i>n</i> (anche − × ÷)</td><td>Aritmetica nel registro: R<i>n</i> = R<i>n</i> + X.</td></tr>
+  <tr><td>[[RCL]] [[+]] <i>n</i> (anche − × ÷)</td><td>Aritmetica con il registro: X = X + R<i>n</i>, senza sollevare lo stack.</td></tr>
+  <tr><td>[[STO]] [[I]] / [[RCL]] [[I]]</td><td>Registro indice I (tasto TAN, senza [[f]] dopo STO/RCL).</td></tr>
+  <tr><td>[[STO]] [[(i)]] / [[RCL]] [[(i)]]</td><td>Registro il cui numero è la parte intera di |I| (tasto COS). I = 0–9 → R0–R9, 10–19 → R.0–R.9, 20–63 → registri aggiuntivi.</td></tr>
+  <tr><td>[[f]] [[x↔]] <i>n</i> / [[I]] / [[(i)]]</td><td>Scambia X con un registro.</td></tr>
+  <tr><td>[[f]] [[CLREG]]</td><td>Azzera tutti i registri, I compreso.</td></tr>
+</table>
+<div class="note">Il registro I serve anche come argomento indiretto per GTO, GSB, FIX/SCI/ENG, SF/CF/F?, DSE, ISG, SOLVE e ∫ (vedi i capitoli seguenti).</div>
+</section>
+
+<section class="chapter">
+<h2>8. Programmazione</h2>
+<p>Un programma è una sequenza di tasti memorizzata e rieseguibile. La memoria contiene fino a 448 righe; ogni riga è un'istruzione completa (per esempio [[STO]] [[+]] 3 occupa una sola riga).</p>
+
+<h3>Scrivere un programma</h3>
+<ol>
+  <li>Premi [[g]] [[P/R]]: si accende <b>PRGM</b> e il display mostra la riga corrente, all'inizio {{lcd:000-}}.</li>
+  <li>Digita i tasti: ogni istruzione viene <b>inserita dopo</b> la riga corrente.</li>
+  <li>Premi [[g]] [[P/R]] per tornare al modo di calcolo.</li>
+</ol>
+<p>In modo programma il display mostra il numero di riga e i <b>codici dei tasti</b> premuti: riga e colonna del tasto, oppure la cifra per i tasti numerici. Per esempio {{lcd:001- 42,21,11}} è [[f]] [[LBL]] [[A]], e {{lcd:002-    43,11}} è [[g]] [[x²]].</p>
+<table>
+  <tr><th>In modo programma</th><th>Effetto</th></tr>
+  <tr><td>[[SST]] / [[g]] [[BST]]</td><td>Riga successiva / precedente.</td></tr>
+  <tr><td>[[GTO]] [[CHS]] <i>nnn</i></td><td>Va alla riga <i>nnn</i> (tre cifre); funziona anche fuori dal modo programma.</td></tr>
+  <tr><td>[[←]]</td><td>Cancella la riga mostrata.</td></tr>
+  <tr><td>[[f]] [[CLPRG]]</td><td>Cancella tutto il programma (fuori dal modo programma riporta solo alla riga 000).</td></tr>
+  <tr><td>[[g]] [[MEM]]</td><td>Mostra le righe usate e quelle libere, per esempio {{lcd:P005  L443}}.</td></tr>
+</table>
+
+<h3>Etichette, salti e sottoprogrammi</h3>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td>[[f]] [[LBL]] <i>e</i></td><td>Etichetta: A–E, 0–9 oppure .0–.9.</td></tr>
+  <tr><td>[[f]] [[A]]…[[E]]</td><td>Avvia il programma dall'etichetta A–E.</td></tr>
+  <tr><td>[[GSB]] <i>e</i></td><td>Esegue il sottoprogramma che inizia all'etichetta <i>e</i>; al suo [[g]] [[RTN]] torna indietro. Fino a 7 livelli.</td></tr>
+  <tr><td>[[GTO]] <i>e</i></td><td>Salta all'etichetta (da tastiera: posiziona il programma senza eseguirlo).</td></tr>
+  <tr><td>[[GTO]] [[I]] / [[GSB]] [[I]]</td><td>Salto indiretto: I = 0–9 → etichette 0–9, 10–19 → .0–.9, 20–24 → A–E; se I è negativo, salta alla riga |I|.</td></tr>
+  <tr><td>[[g]] [[RTN]]</td><td>Fine di un sottoprogramma; a livello principale ferma il programma e torna alla riga 000. Anche la fine della memoria vale come RTN.</td></tr>
+  <tr><td>[[R/S]]</td><td>In un programma: si ferma (per leggere un risultato o inserire un dato). Da tastiera: riprende dalla riga successiva.</td></tr>
+  <tr><td>[[f]] [[PSE]]</td><td>Pausa di un secondo mostrando X, poi continua.</td></tr>
+  <tr><td>[[SST]] (fuori da PRGM)</td><td>Esegue il programma una riga alla volta mostrando ogni riga; [[g]] [[BST]] torna indietro di una riga.</td></tr>
+</table>
+<p>Le etichette vengono cercate a partire dalla riga corrente verso il basso, ricominciando poi dall'inizio. I numeri inseriti in un programma occupano una riga per cifra; per separare due numeri consecutivi usa [[ENTER]].</p>
+
+<h3>Modo USER</h3>
+<p>[[f]] [[USER]] attiva o disattiva il modo USER. Quando è attivo, i cinque tasti della prima riga eseguono A–E <b>senza</b> premere [[f]]; per le funzioni primarie (√x, eˣ, 10ˣ, yˣ, 1/x) si preme invece [[f]]. Il modo USER fa anche avanzare automaticamente gli indici nell'inserimento delle matrici (capitolo 12).</p>
+
+<h3>Test condizionali</h3>
+<p>Un test confronta X (e Y) e decide se eseguire la riga successiva: <b>se la condizione è vera</b> il programma prosegue normalmente; <b>se è falsa salta la riga successiva</b>. Da tastiera un test mostra per un attimo <span class="lcd">true</span> o <span class="lcd">false</span>.</p>
+<table>
+  <tr><th>Tasti</th><th>Condizione</th><th>Tasti</th><th>Condizione</th></tr>
+  <tr><td>[[g]] [[x≤y]]</td><td>x ≤ y</td><td>[[g]] [[x=0]]</td><td>x = 0</td></tr>
+  <tr><td>[[g]] [[TEST]] 0</td><td>x ≠ 0</td><td>[[g]] [[TEST]] 5</td><td>x = y</td></tr>
+  <tr><td>[[g]] [[TEST]] 1</td><td>x &gt; 0</td><td>[[g]] [[TEST]] 6</td><td>x ≠ y</td></tr>
+  <tr><td>[[g]] [[TEST]] 2</td><td>x &lt; 0</td><td>[[g]] [[TEST]] 7</td><td>x &gt; y</td></tr>
+  <tr><td>[[g]] [[TEST]] 3</td><td>x ≥ 0</td><td>[[g]] [[TEST]] 8</td><td>x &lt; y</td></tr>
+  <tr><td>[[g]] [[TEST]] 4</td><td>x ≤ 0</td><td>[[g]] [[TEST]] 9</td><td>x ≥ y</td></tr>
+</table>
+
+<h3>Contatori di ciclo: ISG e DSE</h3>
+<p>[[f]] [[ISG]] <i>r</i> (incrementa e salta se maggiore) e [[f]] [[DSE]] <i>r</i> (decrementa e salta se minore o uguale) usano un registro (0–9, .0–.9, I oppure (i)) che contiene un <b>numero di controllo</b> nella forma <span class="mono">nnnnn.xxxyy</span>:</p>
+<ul>
+  <li><span class="mono">nnnnn</span>: il contatore;</li>
+  <li><span class="mono">xxx</span>: il valore di confronto;</li>
+  <li><span class="mono">yy</span>: il passo (00 vale 1).</li>
+</ul>
+<p>ISG somma il passo al contatore e salta la riga successiva se il contatore supera xxx. DSE sottrae il passo e salta se il contatore è minore o uguale a xxx. Esempio: 1.010 conta da 1 a 10 con ISG; 5 conta alla rovescia fino a 0 con DSE.</p>
+
+<h3>Flag</h3>
+<p>Dieci flag (0–9) memorizzano condizioni sì/no: [[g]] [[SF]] <i>n</i> li attiva, [[g]] [[CF]] <i>n</i> li disattiva, [[g]] [[F?]] <i>n</i> esegue la riga successiva solo se il flag è attivo. I flag 0–7 sono liberi. Il flag 8 attiva il modo complesso; il flag 9 viene acceso in caso di overflow.</p>
+
+<h3>Esempio 1: area del cerchio</h3>
+<table class="prog">
+  <tr><th>Riga</th><th>Tasti</th><th>Commento</th></tr>
+  <tr><td>001- 42,21,11</td><td>[[f]] [[LBL]] [[A]]</td><td>inizio programma A</td></tr>
+  <tr><td>002-    43,11</td><td>[[g]] [[x²]]</td><td>r²</td></tr>
+  <tr><td>003-    43,26</td><td>[[g]] [[π]]</td><td></td></tr>
+  <tr><td>004-       20</td><td>[[×]]</td><td>π·r²</td></tr>
+  <tr><td>005-    43,32</td><td>[[g]] [[RTN]]</td><td>fine</td></tr>
+</table>
+<p>Uso: 3 [[f]] [[A]] → {{lcd:28.2743}}.</p>
+
+<h3>Esempio 2: fattoriale con un ciclo DSE</h3>
+<table class="prog">
+  <tr><th>Riga</th><th>Tasti</th><th>Commento</th></tr>
+  <tr><td>001- 42,21,12</td><td>[[f]] [[LBL]] [[B]]</td><td></td></tr>
+  <tr><td>002-    44, 0</td><td>[[STO]] 0</td><td>n nel contatore R0</td></tr>
+  <tr><td>003-        1</td><td>1</td><td>prodotto iniziale</td></tr>
+  <tr><td>004- 42,21, 1</td><td>[[f]] [[LBL]] 1</td><td>inizio del ciclo</td></tr>
+  <tr><td>005-    45, 0</td><td>[[RCL]] 0</td><td></td></tr>
+  <tr><td>006-       20</td><td>[[×]]</td><td>prodotto × contatore</td></tr>
+  <tr><td>007- 42, 5, 0</td><td>[[f]] [[DSE]] 0</td><td>contatore − 1; se arriva a 0 salta la riga 008</td></tr>
+  <tr><td>008-    22, 1</td><td>[[GTO]] 1</td><td>ripete il ciclo</td></tr>
+  <tr><td>009-    43,32</td><td>[[g]] [[RTN]]</td><td></td></tr>
+</table>
+<p>Uso: 5 [[f]] [[B]] → {{lcd:120.0000}}. Nota che il tasto DSE è il tasto 5, quindi la riga 007 mostra il codice "5".</p>
+
+<h3>Esempio 3: valore assoluto con un test</h3>
+<table class="prog">
+  <tr><th>Riga</th><th>Tasti</th><th>Commento</th></tr>
+  <tr><td>001- 42,21,13</td><td>[[f]] [[LBL]] [[C]]</td><td></td></tr>
+  <tr><td>002- 43,30, 2</td><td>[[g]] [[TEST]] 2</td><td>x &lt; 0 ?</td></tr>
+  <tr><td>003-       16</td><td>[[CHS]]</td><td>eseguita solo se x è negativo</td></tr>
+  <tr><td>004-    43,32</td><td>[[g]] [[RTN]]</td><td></td></tr>
+</table>
+</section>
+
+<section class="chapter">
+<h2>9. SOLVE: trovare gli zeri di una funzione</h2>
+<p>[[f]] [[SOLVE]] <i>e</i> cerca un valore di x per cui la funzione f(x), scritta come programma con etichetta <i>e</i>, vale zero.</p>
+<ol>
+  <li>Scrivi il programma della funzione: inizia con [[f]] [[LBL]] <i>e</i> e termina con [[g]] [[RTN]]. Quando viene chiamato, <b>X, Y, Z e T contengono tutti il valore di x</b>: puoi usarlo più volte senza registri. Il valore di f(x) deve restare in X.</li>
+  <li>Inserisci due stime iniziali, una in Y e una in X (possono anche coincidere).</li>
+  <li>Premi [[f]] [[SOLVE]] <i>e</i>. Il display mostra <span class="lcd">running</span>.</li>
+</ol>
+<p>Al termine: <b>X = radice</b>, <b>Y = stima precedente</b>, <b>Z = f(radice)</b>, che dovrebbe essere 0 o quasi. Se la radice non esiste o non si trova, appare {{lcd:Error 8}}.</p>
+<div class="tip"><b>Esempio:</b> radice di x² − 2.<br>
+Programma: [[f]] [[LBL]] 0 [[g]] [[x²]] 2 [[−]] [[g]] [[RTN]]<br>
+1 [[ENTER]] 2 [[f]] [[SOLVE]] 0 → {{lcd:1.4142}}<br>
+Con le stime 0 e −5 si trova invece la radice negativa {{lcd:-1.4142}}.</div>
+<div class="tip"><b>Esempio:</b> soluzione di cos x = x in radianti, cioè f(x) = cos x − x.<br>
+Programma: [[f]] [[LBL]] 2 [[COS]] [[x↔y]] [[−]] [[g]] [[RTN]]; poi [[g]] [[RAD]] 0 [[ENTER]] 1 [[f]] [[SOLVE]] 2 → {{lcd:0.7391}}.</div>
+<p>Se SOLVE viene usato <b>dentro un programma</b> e non trova una radice, non dà errore: salta la riga successiva, così il programma può gestire il caso. SOLVE può essere usato dentro una funzione da integrare, ma non dentro un'altra funzione di SOLVE ({{lcd:Error 7}}).</p>
+<div class="note">Per i casi difficili, scegli stime vicine alla radice o ai lati opposti della radice (dove f ha segni diversi): in quel caso la convergenza è garantita.</div>
+</section>
+
+<section class="chapter">
+<h2>10. ∫ Integrazione numerica</h2>
+<p>[[f]] [[∫xy]] <i>e</i> calcola l'integrale definito della funzione scritta come programma con etichetta <i>e</i> (con le stesse regole viste per SOLVE: X, Y, Z e T contengono x, il risultato resta in X).</p>
+<ol>
+  <li>Inserisci il <b>limite inferiore</b> in Y e il <b>limite superiore</b> in X: <i>a</i> [[ENTER]] <i>b</i>.</li>
+  <li>Premi [[f]] [[∫xy]] <i>e</i>.</li>
+</ol>
+<p>Al termine: <b>X = integrale</b>, <b>Y = incertezza stimata</b>, <b>Z = limite superiore</b>, <b>T = limite inferiore</b>.</p>
+<h3>Precisione e formato del display</h3>
+<p>Come sull'originale, la precisione richiesta dipende dal formato del display: il calcolo considera la funzione esatta fino all'ultima cifra mostrata. Con FIX 4 l'integrale è accurato più o meno alla quarta cifra decimale; con FIX 8 o SCI 6 è più preciso, ma richiede più tempo. Il valore in Y indica l'incertezza corrispondente.</p>
+<p>La funzione non viene mai calcolata esattamente negli estremi: si possono integrare funzioni come sin x / x da 0 senza dividere per zero.</p>
+<div class="tip"><b>Esempio:</b> ∫₀¹ sin x / x dx (in radianti).<br>
+Programma: [[f]] [[LBL]] 1 [[SIN]] [[x↔y]] [[÷]] [[g]] [[RTN]]<br>
+[[g]] [[RAD]] 0 [[ENTER]] 1 [[f]] [[∫xy]] 1 → {{lcd:0.9461}}</div>
+<div class="tip"><b>Esempio:</b> ∫₀¹ x² dx: [[f]] [[LBL]] 3 [[g]] [[x²]] [[g]] [[RTN]], poi 0 [[ENTER]] 1 [[f]] [[∫xy]] 3 → {{lcd:0.3333}}.</div>
+<p>Non si può calcolare un integrale dentro la funzione di un altro integrale ({{lcd:Error 7}}), ma si può usare SOLVE al suo interno.</p>
+</section>
+
+<section class="chapter">
+<h2>11. Numeri complessi</h2>
+<p>In modo complesso ogni registro dello stack ha una parte reale e una immaginaria; il display mostra la parte reale e si accende l'indicatore <b>C</b>.</p>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td><i>a</i> [[ENTER]] <i>b</i> [[f]] [[I]]</td><td>Crea il numero <i>a</i> + <i>b</i>i (reale da Y, immaginaria da X) e attiva il modo complesso.</td></tr>
+  <tr><td>[[f]] [[(i)]]</td><td>Mostra per un attimo la parte immaginaria di X.</td></tr>
+  <tr><td>[[f]] [[Re↔Im]]</td><td>Scambia parte reale e immaginaria di X; attiva il modo complesso.</td></tr>
+  <tr><td>[[g]] [[SF]] 8 / [[g]] [[CF]] 8</td><td>Attiva / disattiva il modo complesso (disattivandolo le parti immaginarie si azzerano).</td></tr>
+</table>
+<p>Funzionano con i numeri complessi: + − × ÷, yˣ, √x, x², 1/x, eˣ, LN, 10ˣ, LOG, SIN, COS, TAN e inverse, le iperboliche e inverse, ABS (modulo), →P e →R (su X: modulo e argomento ↔ parte reale e immaginaria), e i test x = 0, TEST 0, TEST 5 e TEST 6. Le operazioni sullo stack (ENTER, x↔y, R↓, R↑, LSTx) spostano il numero complesso intero.</p>
+<div class="note">Le funzioni trigonometriche complesse lavorano sempre in <b>radianti</b>. [[CHS]] e [[CLx]] agiscono solo sulla parte reale; per cambiare segno a tutto il numero usa 1 [[CHS]] [[×]]. Statistica, conversioni di ore e funzioni come INT, FRAC e x! usano solo la parte reale.</div>
+<div class="tip"><b>Esempio:</b> (1 + 2i)(3 + 4i).<br>
+1 [[ENTER]] 2 [[f]] [[I]] 3 [[ENTER]] 4 [[f]] [[I]] [[×]] → {{lcd:-5.0000}}; [[f]] [[(i)]] → {{lcd:10.0000}}: il risultato è −5 + 10i.<br>
+Con il modo complesso attivo, 4 [[CHS]] [[√x]] dà 0 + 2i invece di un errore.</div>
+</section>
+
+<section class="chapter">
+<h2>12. Matrici</h2>
+<p>Ci sono cinque matrici, chiamate <b>A, B, C, D ed E</b>, per un totale di 400 elementi. Nello stack una matrice è rappresentata dal suo <b>descrittore</b>: il display mostra il nome e le dimensioni, per esempio {{lcd:A      2   2}}.</p>
+<h3>Dimensionare e riempire</h3>
+<table>
+  <tr><th>Tasti</th><th>Funzione</th></tr>
+  <tr><td><i>righe</i> [[ENTER]] <i>colonne</i> [[f]] [[DIM]] [[A]]</td><td>Dimensiona A (fino a 99 × 99 nei limiti della memoria). 0 libera la matrice.</td></tr>
+  <tr><td>[[RCL]] [[DIM]] [[A]]</td><td>Righe in Y, colonne in X.</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 0</td><td>Libera tutte le matrici.</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 1</td><td>Porta gli indici R0 (riga) e R1 (colonna) a 1.</td></tr>
+  <tr><td>[[STO]] [[A]] / [[RCL]] [[A]]</td><td>Memorizza / richiama l'elemento alla riga R0 e colonna R1. In modo USER gli indici avanzano da soli, riga per riga.</td></tr>
+  <tr><td><i>riga</i> [[ENTER]] <i>col</i> [[RCL]] [[g]] [[A]]</td><td>Richiama l'elemento indicato da Y (riga) e X (colonna).</td></tr>
+  <tr><td><i>valore</i> [[ENTER]] <i>riga</i> [[ENTER]] <i>col</i> [[STO]] [[g]] [[A]]</td><td>Memorizza il valore in Z nell'elemento indicato da Y e X.</td></tr>
+  <tr><td>[[RCL]] [[MATRIX]] [[A]]</td><td>Mette in X il descrittore di A.</td></tr>
+  <tr><td>[[STO]] [[MATRIX]] [[A]]</td><td>Se X è un descrittore, copia quella matrice in A; se X è un numero, lo scrive in tutti gli elementi di A.</td></tr>
+  <tr><td>[[f]] [[RESULT]] [[B]]</td><td>Sceglie la matrice in cui scrivere i risultati (all'inizio è A).</td></tr>
+</table>
+<p>In un programma, con il modo USER, [[STO]] [[A]] e [[RCL]] [[A]] saltano la riga successiva quando gli indici ripartono dal primo elemento: è un modo comodo per scorrere tutta la matrice.</p>
+<h3>Operazioni</h3>
+<table>
+  <tr><th>Con descrittori in Y e/o X</th><th>Risultato (nella matrice RESULT)</th></tr>
+  <tr><td>[[+]] [[−]]</td><td>Somma / differenza elemento per elemento (stesse dimensioni), oppure matrice ± numero.</td></tr>
+  <tr><td>[[×]]</td><td>Prodotto righe per colonne Y·X (la matrice RESULT deve essere diversa da Y e X), oppure prodotto per un numero.</td></tr>
+  <tr><td>[[÷]]</td><td>Y ÷ X = X⁻¹·Y: <b>risolve il sistema lineare</b> X·R = Y. Numero ÷ matrice = numero·X⁻¹.</td></tr>
+  <tr><td>[[1/x]]</td><td>Matrice inversa di X.</td></tr>
+  <tr><td>[[CHS]]</td><td>Cambia segno a tutti gli elementi di X (sul posto).</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 4</td><td>Trasposta di X (sul posto).</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 5</td><td>Yᵀ·X.</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 6</td><td>Residuo: RESULT − Y·X (utile per migliorare la soluzione di un sistema).</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 7</td><td>Norma di riga di X (massima somma dei valori assoluti di una riga).</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 8</td><td>Norma di Frobenius di X.</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 9</td><td>Determinante di X.</td></tr>
+  <tr><td>[[f]] [[MATRIX]] 2 / 3</td><td>Matrici complesse: dalla forma partizionata Zᴾ (parti reali sopra, immaginarie sotto) alla forma estesa Z̃ (2m × 2n), e viceversa.</td></tr>
+  <tr><td>[[f]] [[Py,x]] / [[g]] [[Cy,x]]</td><td>Con un descrittore in X: dalla forma Zᶜ (coppie reale-immaginaria affiancate) a Zᴾ, e viceversa.</td></tr>
+</table>
+<div class="tip"><b>Esempio:</b> risolvere il sistema x + 2y = 5, 3x + 4y = 11.<br>
+2 [[ENTER]] [[f]] [[DIM]] [[A]] — matrice dei coefficienti 2 × 2<br>
+[[f]] [[MATRIX]] 1 [[f]] [[USER]] 1 [[STO]] [[A]] 2 [[STO]] [[A]] 3 [[STO]] [[A]] 4 [[STO]] [[A]]<br>
+2 [[ENTER]] 1 [[f]] [[DIM]] [[B]] [[f]] [[MATRIX]] 1 5 [[STO]] [[B]] 11 [[STO]] [[B]] [[f]] [[USER]]<br>
+[[RCL]] [[MATRIX]] [[B]] [[RCL]] [[MATRIX]] [[A]] [[f]] [[RESULT]] [[C]] [[÷]] → {{lcd:C      2   1}}<br>
+1 [[ENTER]] 1 [[RCL]] [[g]] [[C]] → {{lcd:1.0000}} (x); 2 [[ENTER]] 1 [[RCL]] [[g]] [[C]] → {{lcd:2.0000}} (y).<br>
+Determinante di A: [[RCL]] [[MATRIX]] [[A]] [[f]] [[MATRIX]] 9 → {{lcd:-2.0000}}.</div>
+</section>
+
+<section class="chapter">
+<h2>13. Messaggi di errore</h2>
+<p>Qualunque tasto cancella il messaggio d'errore; lo stack resta com'era prima dell'operazione non riuscita.</p>
+<table>
+  <tr><th>Messaggio</th><th>Causa</th></tr>
+  <tr><td>{{lcd:Error 0}}</td><td>Operazione matematica impossibile: divisione per zero, √ o logaritmo di un numero negativo, arcoseno fuori da [−1, 1], matrice singolare…</td></tr>
+  <tr><td>{{lcd:Error 1}}</td><td>Operazione non valida con un descrittore di matrice, o numero di flag non valido.</td></tr>
+  <tr><td>{{lcd:Error 2}}</td><td>Statistica impossibile (per esempio media con n = 0 o deviazione con n ≤ 1).</td></tr>
+  <tr><td>{{lcd:Error 3}}</td><td>Registro inesistente o indice di matrice fuori dalle dimensioni.</td></tr>
+  <tr><td>{{lcd:Error 4}}</td><td>Etichetta inesistente o numero di riga oltre la fine del programma.</td></tr>
+  <tr><td>{{lcd:Error 5}}</td><td>Più di 7 livelli di sottoprogrammi annidati.</td></tr>
+  <tr><td>{{lcd:Error 7}}</td><td>SOLVE dentro SOLVE, oppure ∫ dentro ∫.</td></tr>
+  <tr><td>{{lcd:Error 8}}</td><td>SOLVE non trova una radice.</td></tr>
+  <tr><td>{{lcd:Error 10}}</td><td>Memoria insufficiente (righe di programma o elementi di matrice).</td></tr>
+  <tr><td>{{lcd:Error 11}}</td><td>Dimensioni delle matrici non compatibili, o matrice RESULT non valida per l'operazione.</td></tr>
+</table>
+</section>
+
+<section class="chapter">
+<h2>14. Limiti e differenze dall'originale</h2>
+<p>RPN-15 è ispirata alla HP-15C ma non ne è un emulatore: il comportamento è stato ricostruito, non copiato dal firmware. Le differenze principali:</p>
+<ul>
+  <li><b>Memoria separata e più ampia:</b> 448 righe di programma, 64 registri e 400 elementi di matrice disponibili insieme, invece di una memoria condivisa da ripartire con DIM (i). [[f]] [[DIM]] [[(i)]] viene accettato ma non cambia nulla.</li>
+  <li><b>Precisione:</b> i calcoli usano numeri in doppia precisione (circa 15–16 cifre) invece dell'aritmetica decimale a 10 cifre. Il display mostra al massimo 10 cifre significative; risultati come 1/3 × 3 possono differire dall'originale nell'ultima cifra nascosta.</li>
+  <li><b>Algoritmi propri</b> per SOLVE (ricerca con secante e metodo di Brent) e per ∫ (Gauss-Kronrod adattivo): i risultati coincidono entro la precisione mostrata, ma il numero di valutazioni e le stime intermedie in Y possono essere diversi.</li>
+  <li><b>Matrici singolari:</b> danno {{lcd:Error 0}} invece di proseguire con un pivot sostituito da un numero molto piccolo. La scomposizione LU non viene conservata nella matrice risultato.</li>
+  <li><b>R/S dentro una funzione di SOLVE o ∫</b> viene ignorato; per fermare il calcolo premi un tasto qualsiasi.</li>
+  <li><b>Codici nel display del modo programma:</b> separati sempre da virgole, per esempio {{lcd:43,32}}.</li>
+  <li><b>MEM</b> mostra righe usate e libere invece della ripartizione dei registri.</li>
+  <li>Non ci sono le funzioni di autotest e di stampa, e non è possibile spostare lo stack dei sottoprogrammi oltre 7 livelli.</li>
+</ul>
+<div class="note">Il nome HP-15C appartiene ai rispettivi proprietari ed è citato solo per indicare la calcolatrice a cui RPN-15 si ispira. RPN-15 ha una grafica e un codice originali.</div>
+</section>
+
+<section class="chapter">
+<h2>Appendice: indice delle funzioni</h2>
+<table>
+  <tr><th>Funzione</th><th>Tasti</th><th>Cap.</th><th>Funzione</th><th>Tasti</th><th>Cap.</th></tr>
+  <tr><td>ABS</td><td>[[g]] [[ABS]]</td><td>5</td><td>MEM</td><td>[[g]] [[MEM]]</td><td>8</td></tr>
+  <tr><td>BST</td><td>[[g]] [[BST]]</td><td>8</td><td>P/R</td><td>[[g]] [[P/R]]</td><td>8</td></tr>
+  <tr><td>CF, SF, F?</td><td>[[g]] 4 / 5 / 6</td><td>8</td><td>PREFIX</td><td>[[f]] [[PREFIX]]</td><td>4</td></tr>
+  <tr><td>CLPRG</td><td>[[f]] [[CLPRG]]</td><td>8</td><td>PSE</td><td>[[f]] [[PSE]]</td><td>8</td></tr>
+  <tr><td>CLREG</td><td>[[f]] [[CLREG]]</td><td>7</td><td>Py,x, Cy,x</td><td>[[f]] / [[g]] [[+]]</td><td>5, 12</td></tr>
+  <tr><td>CLΣ</td><td>[[f]] [[CLΣ]]</td><td>6</td><td>R/S</td><td>[[R/S]]</td><td>8</td></tr>
+  <tr><td>DEG, RAD, GRD</td><td>[[g]] 7 / 8 / 9</td><td>5</td><td>RAN#</td><td>[[f]] [[RAN#]]</td><td>5</td></tr>
+  <tr><td>DIM</td><td>[[f]] [[DIM]]</td><td>12</td><td>Re↔Im</td><td>[[f]] [[Re↔Im]]</td><td>11</td></tr>
+  <tr><td>DSE, ISG</td><td>[[f]] 5 / 6</td><td>8</td><td>RESULT</td><td>[[f]] [[RESULT]]</td><td>12</td></tr>
+  <tr><td>FIX, SCI, ENG</td><td>[[f]] 7 / 8 / 9</td><td>4</td><td>RND</td><td>[[g]] [[RND]]</td><td>4</td></tr>
+  <tr><td>FRAC, INT</td><td>[[f]] / [[g]] [[STO]]</td><td>5</td><td>RTN</td><td>[[g]] [[RTN]]</td><td>8</td></tr>
+  <tr><td>GSB, GTO</td><td>[[GSB]] / [[GTO]]</td><td>8</td><td>SOLVE</td><td>[[f]] [[SOLVE]]</td><td>9</td></tr>
+  <tr><td>HYP, HYP⁻¹</td><td>[[f]] / [[g]] [[GTO]]</td><td>5</td><td>SST</td><td>[[SST]]</td><td>8</td></tr>
+  <tr><td>I, (i)</td><td>[[f]] [[TAN]] / [[COS]]</td><td>7, 11</td><td>TEST</td><td>[[g]] [[TEST]]</td><td>8</td></tr>
+  <tr><td>L.R., ŷ,r</td><td>[[f]] [[Σ+]] / [[.]]</td><td>6</td><td>USER</td><td>[[f]] [[USER]]</td><td>8</td></tr>
+  <tr><td>LBL</td><td>[[f]] [[LBL]]</td><td>8</td><td>x̄, s</td><td>[[g]] [[0]] / [[.]]</td><td>6</td></tr>
+  <tr><td>LSTx</td><td>[[g]] [[LSTx]]</td><td>3</td><td>x!</td><td>[[f]] [[0]]</td><td>5</td></tr>
+  <tr><td>MATRIX</td><td>[[f]] [[MATRIX]]</td><td>12</td><td>x↔</td><td>[[f]] [[x↔]]</td><td>7</td></tr>
+  <tr><td>→H.MS, →H</td><td>[[f]] / [[g]] 2</td><td>5</td><td>x≤y, x=0</td><td>[[g]] [[÷]] / [[×]]</td><td>8</td></tr>
+  <tr><td>→P, →R</td><td>[[g]] / [[f]] 1</td><td>5, 11</td><td>∫xy</td><td>[[f]] [[∫xy]]</td><td>10</td></tr>
+  <tr><td>→RAD, →DEG</td><td>[[f]] / [[g]] 3</td><td>5</td><td>Σ+, Σ−</td><td>[[Σ+]] / [[g]] [[Σ−]]</td><td>6</td></tr>
+</table>
+</section>

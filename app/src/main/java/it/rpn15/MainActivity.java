@@ -26,6 +26,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 public class MainActivity extends Activity {
 
     // Palette originale (non riproduce i colori di nessun prodotto commerciale)
@@ -40,25 +43,49 @@ public class MainActivity extends Activity {
     private static final int LCD_BG = Color.rgb(0xB9, 0xC2, 0xA6);
     private static final int LCD_TXT = Color.rgb(0x1A, 0x22, 0x18);
 
+    /** Il motore gira su un solo thread di lavoro, così i programmi lunghi non bloccano lo schermo. */
     private final Calc calc = new Calc();
+    private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
 
-    private TextView disp, annF, annG, annPending, annMode;
+    private TextView disp, annUser, annF, annG, annPending, annMode, annC, annPrgm;
+
+    /** Copia dello stato da mostrare, preparata dal thread di lavoro. */
+    private static final class View_ {
+        String display, transientText, message, pending, mode;
+        boolean f, g, user, complex, prgm;
+        double x;
+    }
+
+    private volatile View_ last;
+    private long transientUntil;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         prefs = getSharedPreferences("rpn15", Context.MODE_PRIVATE);
-        calc.restore(prefs.getString("state", null));
         setContentView(buildUi());
-        refresh();
+        final String saved = prefs.getString("state", null);
+        worker.execute(() -> {
+            calc.restore(saved);
+            publish();
+        });
+        handler.post(ticker);
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        prefs.edit().putString("state", calc.serialize()).apply();
+        calc.requestStop();
+        worker.execute(() -> prefs.edit().putString("state", calc.serialize()).apply());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        handler.removeCallbacksAndMessages(null);
+        worker.shutdown();
     }
 
     @Override
@@ -107,7 +134,6 @@ public class MainActivity extends Activity {
     }
 
     private View buildDisplay() {
-        // contenitore centrato largo circa metà schermo, come un display LCD
         LinearLayout outer = new LinearLayout(this);
         outer.setGravity(Gravity.CENTER);
         outer.setWeightSum(1f);
@@ -124,8 +150,10 @@ public class MainActivity extends Activity {
         disp.setMaxLines(1);
         disp.setAutoSizeTextTypeUniformWithConfiguration(12, 40, 1, TypedValue.COMPLEX_UNIT_SP);
         disp.setOnLongClickListener(v -> {
+            View_ s = last;
+            if (s == null) return true;
             ClipboardManager cm = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-            String val = Double.toString(calc.x);
+            String val = Double.toString(s.x);
             if (val.endsWith(".0")) val = val.substring(0, val.length() - 2);
             cm.setPrimaryClip(ClipData.newPlainText("X", val));
             Toast.makeText(this, "Copiato: " + val, Toast.LENGTH_SHORT).show();
@@ -135,14 +163,20 @@ public class MainActivity extends Activity {
 
         LinearLayout ann = new LinearLayout(this);
         ann.setOrientation(LinearLayout.HORIZONTAL);
+        annUser = annText();
         annF = annText();
         annG = annText();
         annPending = annText();
         annMode = annText();
+        annC = annText();
+        annPrgm = annText();
+        ann.addView(annUser, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 2));
         ann.addView(annF, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
         ann.addView(annG, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
-        ann.addView(annPending, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 3));
+        ann.addView(annPending, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 4));
         ann.addView(annMode, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 2));
+        ann.addView(annC, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        ann.addView(annPrgm, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 2));
         lcd.addView(ann, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 0.26f));
 
         outer.addView(lcd, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0.62f));
@@ -187,7 +221,6 @@ public class MainActivity extends Activity {
         cell.setOrientation(LinearLayout.VERTICAL);
         cell.setPadding(dp(3), 0, dp(3), dp(3));
 
-        // etichetta f sopra il tasto
         String fl = Calc.label(code, 1);
         TextView fLabel = new TextView(this);
         fLabel.setText(fl);
@@ -195,11 +228,8 @@ public class MainActivity extends Activity {
         fLabel.setGravity(Gravity.CENTER);
         fLabel.setMaxLines(1);
         fLabel.setAutoSizeTextTypeUniformWithConfiguration(6, 11, 1, TypedValue.COMPLEX_UNIT_SP);
-        if (!fl.isEmpty() && !Calc.supported(fl)) fLabel.setAlpha(0.35f);
-        int labelH = dp(15);
-        cell.addView(fLabel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, labelH));
+        cell.addView(fLabel, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(15)));
 
-        // tasto con funzione primaria e funzione g sul frontale
         TextView key = new TextView(this);
         key.setGravity(Gravity.CENTER);
         key.setAllCaps(false);
@@ -225,9 +255,6 @@ public class MainActivity extends Activity {
             sb.append("\n").append(gl);
             sb.setSpan(new RelativeSizeSpan(0.62f), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             sb.setSpan(new ForegroundColorSpan(G_COL), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            if (!Calc.supported(gl)) {
-                sb.setSpan(new ForegroundColorSpan(Color.argb(90, 0x5E, 0xE0, 0x9A)), start, sb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-            }
         }
         key.setText(sb);
 
@@ -247,59 +274,103 @@ public class MainActivity extends Activity {
     }
 
     // ------------------------------------------------------------------
-    // Gestione tasti e aggiornamento display
+    // Tasti, thread di lavoro e aggiornamento del display
     // ------------------------------------------------------------------
-    private final Runnable refreshRunnable = this::refresh;
-
     private void onKey(int code) {
-        handler.removeCallbacks(refreshRunnable);
-        calc.press(code);
-        String msg = calc.message;
-        if (msg != null) {
-            if (msg.equals("MENU")) showMenu();
-            else if (msg.startsWith("UNSUPPORTED:")) {
-                Toast.makeText(this, msg.substring(12) + ": funzione non ancora disponibile", Toast.LENGTH_SHORT).show();
-            }
+        if (calc.running) {           // qualunque tasto ferma il programma in esecuzione
+            calc.requestStop();
+            return;
         }
-        refresh();
-        if (calc.showMantissa) {
-            disp.setText(calc.mantissa());
-            handler.postDelayed(refreshRunnable, 1500);
-        }
+        worker.execute(() -> {
+            calc.press(code);
+            publish();
+        });
     }
 
-    private void refresh() {
-        disp.setText(calc.display());
-        annF.setText(calc.shift == 1 ? "f" : "");
-        annG.setText(calc.shift == 2 ? "g" : "");
-        annPending.setText(calc.pendingLabel());
-        annMode.setText(calc.angle == Calc.RAD ? "RAD" : calc.angle == Calc.GRAD ? "GRAD" : "");
-        annF.setTextColor(LCD_TXT);
-        annG.setTextColor(LCD_TXT);
+    /** Eseguito sul thread di lavoro: copia lo stato e lo passa all'interfaccia. */
+    private void publish() {
+        View_ s = new View_();
+        s.display = calc.display();
+        s.transientText = calc.transientText;
+        s.message = calc.message;
+        s.pending = calc.pendingLabel();
+        s.mode = calc.angle == Calc.RAD ? "RAD" : calc.angle == Calc.GRAD ? "GRAD" : "";
+        s.f = calc.shift == 1;
+        s.g = calc.shift == 2;
+        s.user = calc.user;
+        s.complex = calc.complex();
+        s.prgm = calc.prgm;
+        s.x = calc.x();
+        calc.transientText = null;
+        calc.message = null;
+        last = s;
+        handler.post(() -> show(s));
     }
+
+    private void show(View_ s) {
+        if (s.transientText != null) {
+            disp.setText(s.transientText);
+            transientUntil = System.currentTimeMillis() + 1300;
+        } else {
+            transientUntil = 0;
+            disp.setText(s.display);
+        }
+        annUser.setText(s.user ? "USER" : "");
+        annF.setText(s.f ? "f" : "");
+        annG.setText(s.g ? "g" : "");
+        annPending.setText(s.pending);
+        annMode.setText(s.mode);
+        annC.setText(s.complex ? "C" : "");
+        annPrgm.setText(s.prgm ? "PRGM" : "");
+        if ("MENU".equals(s.message)) showMenu();
+    }
+
+    /** Ogni 100 ms: mostra "running" o la pausa di PSE e chiude i messaggi temporanei. */
+    private final Runnable ticker = new Runnable() {
+        private boolean blink;
+
+        @Override
+        public void run() {
+            if (calc.running) {
+                String p = calc.pauseText;
+                if (p != null) disp.setText(p);
+                else {
+                    blink = !blink;
+                    disp.setText(blink ? "running" : "");
+                }
+            } else if (transientUntil != 0 && System.currentTimeMillis() > transientUntil) {
+                transientUntil = 0;
+                View_ s = last;
+                if (s != null) disp.setText(s.display);
+            }
+            handler.postDelayed(this, calc.running ? 250 : 100);
+        }
+    };
 
     private void showMenu() {
         String sep = calc.comma ? "Separatore decimale: virgola → punto" : "Separatore decimale: punto → virgola";
-        String[] items = {sep, "Azzera tutto (stack e registri)", "Informazioni"};
+        String[] items = {sep, "Azzera tutto (stack, registri, programma, matrici)", "Informazioni"};
         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
                 .setTitle("RPN-15")
                 .setItems(items, (d, which) -> {
-                    if (which == 0) {
-                        calc.comma = !calc.comma;
-                    } else if (which == 1) {
-                        calc.reset();
-                    } else {
+                    if (which == 2) {
                         new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
                                 .setTitle("RPN-15")
                                 .setMessage("Calcolatrice RPN ispirata alla HP-15C.\n\n"
                                         + "• f / g selezionano le funzioni arancioni (sopra) e verdi (sul tasto).\n"
-                                        + "• Stack X, Y, Z, T con LSTx e registri R0–R9, R.0–R.9.\n"
-                                        + "• Tieni premuto il display per copiare X.\n"
-                                        + "• Le funzioni sbiadite (programmazione, matrici, SOLVE, ∫) non sono ancora disponibili.")
+                                        + "• g P/R entra ed esce dal modo programma.\n"
+                                        + "• Qualunque tasto ferma un programma in esecuzione.\n"
+                                        + "• Tieni premuto il display per copiare X.\n\n"
+                                        + "Le istruzioni complete sono nel manuale PDF.")
                                 .setPositiveButton("OK", null)
                                 .show();
+                        return;
                     }
-                    refresh();
+                    worker.execute(() -> {
+                        if (which == 0) calc.comma = !calc.comma;
+                        else calc.reset();
+                        publish();
+                    });
                 })
                 .show();
     }
