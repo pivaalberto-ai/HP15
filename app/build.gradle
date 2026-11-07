@@ -14,8 +14,21 @@ android {
         versionName "2.0"
     }
 
+    signingConfigs {
+        fissa {
+            storeFile file('rpn15.keystore')
+            storePassword 'rpn15pass'
+            keyAlias 'rpn15'
+            keyPassword 'rpn15pass'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.fissa
+        }
         release {
+            signingConfig signingConfigs.fissa
             minifyEnabled false
         }
     }
